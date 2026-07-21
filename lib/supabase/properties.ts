@@ -1,0 +1,334 @@
+// import { createClient } from "@/lib/supabase/client";
+
+// export interface Property {
+//   id: string;
+//   title: string;
+//   location: string;
+//   room_type: string;
+//   price_per_month: number;
+//   rating: number;
+//   review_count: number;
+//   image_urls?: string[];
+//   image_url?: string; // fallback
+//   badge?: string;
+//   is_active: boolean;
+//   bedrooms?: number;
+//   kitchens?: number;
+//   floor_number?: string;
+//   is_living_room_available?: boolean;
+//   rent_design?: string;
+//   tags?: string;
+//   detailed_address?: string;
+//   contact_phone?: string;
+//   description?: string;
+//   room_type_slug?: string;
+// }
+
+// interface FetchPropertiesOptions {
+//   roomType?: string;
+//   location?: string;
+//   minBudget?: number;
+//   maxBudget?: number;
+//   limit?: number;
+//   offset?: number;
+// }
+
+// export const SAMPLE_PROPERTIES: Property[] = [];
+
+// export async function fetchProperties({
+//   roomType,
+//   location,
+//   minBudget,    // ← new: filter for minimum price per month
+//   maxBudget,
+//   limit = 8,
+//   offset = 0,
+// }: FetchPropertiesOptions = {}): Promise<Property[]> {
+//   const supabase = createClient();
+
+//   // Start with all active (approved) properties, newest first
+//   let query = supabase
+//     .from("properties")
+//     .select("*")
+//     .eq("is_active", true)
+//     .order("created_at", { ascending: false })
+//     .range(offset, offset + limit - 1);
+
+//   // Filter by room type slug (e.g. "single-room", "2bhk") — skip for "for-you" (all types)
+//   if (roomType && roomType !== "for-you") {
+//     query = query.eq("room_type_slug", roomType);
+//   }
+
+//   // Case-insensitive partial match on location field
+//   if (location) {
+//     query = query.ilike("location", `%${location}%`);
+//   }
+
+//   // Minimum budget filter (gte = greater than or equal)
+//   if (minBudget) {
+//     query = query.gte("price_per_month", minBudget);
+//   }
+
+//   // Maximum budget filter (lte = less than or equal)
+//   if (maxBudget) {
+//     query = query.lte("price_per_month", maxBudget);
+//   }
+
+//   const { data, error } = await query;
+
+//   if (error) {
+//     console.error("Supabase fetchProperties error:", error.message);
+//     return [];
+//   }
+
+//   return data || [];
+// }
+
+// export async function fetchPropertyById(id: string): Promise<Property | null> {
+//   const supabase = createClient();
+
+//   const { data, error } = await supabase
+//     .from("properties")
+//     .select("*, users:owner_id(name, phone_number)")
+//     .eq("id", id)
+//     .single();
+
+//   if (error) {
+//     console.error("Supabase fetchPropertyById error:", error.message);
+//     return null;
+//   }
+
+//   return data || null;
+// }
+
+// export async function fetchRecommendedProperties(
+//   currentProperty: Pick<Property, "id" | "room_type" | "location">,
+//   limit = 4
+// ): Promise<Property[]> {
+//   const supabase = createClient();
+
+//   const { data, error } = await supabase
+//     .from("properties")
+//     .select("*")
+//     .eq("is_active", true)
+//     .eq("room_type", currentProperty.room_type)
+//     .neq("id", currentProperty.id)
+//     .limit(limit);
+
+//   if (error) {
+//     console.error("Supabase fetchRecommendedProperties error:", error.message);
+//     return [];
+//   }
+
+//   const recommendations = data ?? [];
+
+//   if (recommendations.length >= limit) {
+//     return recommendations;
+//   }
+
+//   // Backfill with any active properties so the section is never empty.
+//   const { data: fallback, error: fallbackError } = await supabase
+//     .from("properties")
+//     .select("*")
+//     .eq("is_active", true)
+//     .neq("id", currentProperty.id)
+//     .limit(limit);
+
+//   if (fallbackError) {
+//     console.error("Supabase fetchRecommendedProperties fallback error:", fallbackError.message);
+//     return recommendations;
+//   }
+
+//   const fallbackItems = (fallback ?? []).filter(
+//     (item) => !recommendations.some((recommended) => recommended.id === item.id)
+//   );
+
+//   return [...recommendations, ...fallbackItems].slice(0, limit);
+// }
+
+
+
+import { createClient } from "@/lib/supabase/client";
+
+export interface Property {
+  id: string;
+  title: string;
+  location: string;
+  room_type: string;
+  price_per_month: number;
+  rating: number;
+  review_count: number;
+  image_urls?: string[];
+  image_url?: string;
+  badge?: string;
+  is_active: boolean;
+  bedrooms?: number;
+  kitchens?: number;
+  floor_number?: string;
+  is_living_room_available?: boolean;
+  rent_design?: string;
+  tags?: string;
+  detailed_address?: string;
+  contact_phone?: string;
+  description?: string;
+  room_type_slug?: string;
+}
+
+interface FetchPropertiesOptions {
+  roomType?: string;
+  location?: string;
+  street?: string;
+  minBudget?: number;
+  maxBudget?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export const SAMPLE_PROPERTIES: Property[] = [];
+
+/**
+ * Maps whatever string the CategoryFilter chip sends → the exact slug
+ * stored in the `room_type_slug` column (generated by the insert service).
+ *
+ * Insert generates slugs via: room_type.toLowerCase().replace(/ /g, '-')
+ *   "Single Room"      → "single-room"
+ *   "2/3 Rooms Flat"   → "2/3-rooms-flat"
+ *   "1 BHK"            → "1-bhk"
+ *   "2 BHK"            → "2-bhk"
+ *   "3 BHK"            → "3-bhk"
+ *   "Office Space"     → "office-space"
+ *   "Business Shutter" → "business-shutter"
+ */
+const CATEGORY_SLUG_MAP: Record<string, string> = {
+  // exact DB slugs (pass-through)
+  "single-room":       "single-room",
+  "2/3-rooms-flat":    "2/3-rooms-flat",
+  "2/3-rooms flat":    "2/3-rooms-flat",
+  "rooms-flat":        "2/3-rooms-flat",
+  "1-bhk":             "1-bhk",
+  "2-bhk":             "2-bhk",
+  "3-bhk":             "3-bhk",
+  "office-space":      "office-space",
+  "business-shutter":  "business-shutter",
+
+  // common chip variants (no spaces/hyphens)
+  "singleroom":        "single-room",
+  "single room":       "single-room",
+  "2/3rooms-Flat":     "2/3-rooms-flat",
+  "2/3 rooms flat":    "2/3-rooms-flat",
+  "1bhk":              "1-bhk",
+  "2bhk":              "2-bhk",
+  "3bhk":              "3-bhk",
+  "officespace":       "office-space",
+  "businessshutter":   "business-shutter",
+};
+
+export async function fetchProperties({
+  roomType,
+  location,
+  street,
+  minBudget,
+  maxBudget,
+  limit = 8,
+  offset = 0,
+}: FetchPropertiesOptions = {}): Promise<Property[]> {
+  const supabase = createClient();
+
+  let query = supabase
+    .from("properties")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (roomType && roomType !== "for-you") {
+    // Normalize the incoming chip value → exact DB slug
+    const normalizedSlug =
+      CATEGORY_SLUG_MAP[roomType.toLowerCase()] ?? roomType.toLowerCase();
+    query = query.eq("room_type_slug", normalizedSlug);
+  }
+
+  if (location) {
+    query = query.ilike("location", `%${location}%`);
+  }
+
+  if (street) {
+    query = query.ilike("detailed_address", `%${street}%`);
+  }
+
+  if (minBudget) {
+    query = query.gte("price_per_month", minBudget);
+  }
+
+  if (maxBudget) {
+    query = query.lte("price_per_month", maxBudget);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    // console.error("Supabase fetchProperties error:", error.message);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function fetchPropertyById(id: string): Promise<Property | null> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("properties")
+    .select("*, users:owner_id(name, phone_number)")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    // console.error("Supabase fetchPropertyById error:", error.message);
+    return null;
+  }
+
+  return data || null;
+}
+
+export async function fetchRecommendedProperties(
+  currentProperty: Pick<Property, "id" | "room_type" | "location">,
+  limit = 4
+): Promise<Property[]> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("properties")
+    .select("*")
+    .eq("is_active", true)
+    .eq("room_type", currentProperty.room_type)
+    .neq("id", currentProperty.id)
+    .limit(limit);
+
+  if (error) {
+    // console.error("Supabase fetchRecommendedProperties error:", error.message);
+    return [];
+  }
+
+  const recommendations = data ?? [];
+
+  if (recommendations.length >= limit) return recommendations;
+
+  // Backfill so the section is never empty
+  const { data: fallback, error: fallbackError } = await supabase
+    .from("properties")
+    .select("*")
+    .eq("is_active", true)
+    .neq("id", currentProperty.id)
+    .limit(limit);
+
+  if (fallbackError) {
+    // console.error("Supabase fetchRecommendedProperties fallback error:", fallbackError.message);
+    return recommendations;
+  }
+
+  const fallbackItems = (fallback ?? []).filter(
+    (item) => !recommendations.some((r) => r.id === item.id)
+  );
+
+  return [...recommendations, ...fallbackItems].slice(0, limit);
+}

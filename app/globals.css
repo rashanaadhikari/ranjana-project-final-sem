@@ -1,0 +1,67 @@
+/* 1. Google Fonts MUST come first (before @import "tailwindcss") */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+/* 2. Tailwind v4 */
+@import "tailwindcss";
+
+/* ── Brand / design tokens ─────────────────────────────── */
+@theme {
+  --color-brand:       #0D9488;
+  --color-brand-light: #F0FDFA;
+  --color-brand-dark:  #0F766E;
+  --color-heading:     #222222;
+  --color-subtitle:    #6A6A6A;
+
+  /* Make Poppins available as font-sans */
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Base reset ──────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  background: #ffffff;
+  color: #222222;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Utility: hide scrollbar ────────────────────────────── */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Blog Typography (Minimalist) ────────────────────────── */
+.blog-content p {
+  margin-bottom: 1.5rem;
+  line-height: 1.8;
+  color: #6A6A6A;
+}
+
+.blog-content h2 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #222222;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  letter-spacing: -0.025em;
+}
+
+.blog-content h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #222222;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}

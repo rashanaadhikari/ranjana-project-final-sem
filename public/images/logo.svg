@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" role="img" aria-label="RoomHunt">
+  <g transform="translate(0, 4)">
+    <rect width="32" height="32" rx="8" fill="#0D9488"/>
+    <path d="M16 9 L9 14.5 V25 H23 V14.5 Z" fill="#ffffff"/>
+    <rect x="13.5" y="17" width="5" height="8" rx="0.5" fill="#0D9488"/>
+    <circle cx="27" cy="9" r="5.5" fill="#F0FDFA" stroke="#0D9488" stroke-width="1.5"/>
+    <circle cx="27" cy="9" r="1.75" fill="#0D9488"/>
+  </g>
+  <text x="42" y="27" font-family="Poppins, ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="700" fill="#222222">Room</text>
+  <text x="96" y="27" font-family="Poppins, ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="700" fill="#0D9488">Hunt</text>
+</svg>

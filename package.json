@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:admin": "npx --yes tsx scripts/seed-admin.ts",
+    "seed:rooms": "npx --yes tsx scripts/seed-rooms.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
